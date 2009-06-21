@@ -55,8 +55,9 @@ class Torstinator:
 				f = open(NOISE_FILENAME, 'a')
 				f.write("%s %d\n" % (barktime, level))
 				f.close()
-			except:
-				pass
+			except KeyboardInterrupt:
+				print("Interrupted by ctrl-c")
+				break
 		logging.debug("Closing session")
 		stream.close()
 		p.terminate()
