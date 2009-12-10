@@ -1,12 +1,14 @@
-set term png size 1400,750 enhanced
-set output 'noise.png'
-set autoscale yfix
+reset
+set term png size 1024,600 enhanced
+set output "noise.png"
+set style data lines
+set datafile separator ','
+set timefmt "%s"
+set format x "%Y-%m-%d %H:%M"
 set xdata time
-set timefmt '%s'
-set format x '%Y-%m-%d %H:%M'
-set ylabel 'noise'
-set xtics rotate 600
+set ylabel "Noise level"
 set grid
-set datafile separator ' '
-# plot 'output.txt' using 1:2 notitle with points
-plot "< cat *.noise" using 1:2 notitle with boxes
+set xtics rotate 90
+set key left
+
+plot "< sqlite3 -csv noise.db 'SELECT * FROM noise'" using 1:2 with lines linetype 1 lw 1 title "Noise in our livingroom"

@@ -10,22 +10,33 @@ import audioop
 import optparse
 from time import localtime, strftime
 
-version = 0.3
-LOG_FILENAME = '%s.log' % strftime("%Y%m%d%H%M%S", localtime())
-NOISE_FILENAME = '%s.noise' % strftime("%Y%m%d%H%M%S", localtime())
+import sqlite3
+import os
+
+version = 0.4
 
 logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s\t%(levelname)s\t%(message)s',
-                    filename=LOG_FILENAME,
-                    filemode='w')
+                    format='%(asctime)s\t%(levelname)s\t%(message)s')
 
 class Torstinator:
-	debug = False
+	debug = 0
 	limit = 0
-			
-	def monitor(self):
+	con = None
+
+	def __init__(self):
 		logging.info("Torstinator %.2f, Debug: %s, Limit: %d" % (version, self.debug, self.limit))
 		logging.debug("Initializing")
+		database_name = "noise.db"
+		if not os.path.exists(database_name):
+			self.con = sqlite3.connect(database_name,isolation_level=None)
+			self.con.execute('''create table noise (datetime text, noise real)''')
+		else:
+			self.con = sqlite3.connect(database_name,isolation_level=None)
+
+					
+
+	def monitor(self):
+		logging.debug("Monitoring")
 		samples = 44100
 		buffer = samples
 		try:
@@ -36,25 +47,20 @@ class Torstinator:
                 			channels = 1,
                 			rate = samples,
                 			input = True,
-							frames_per_buffer = buffer)
+					frames_per_buffer = buffer)
 		except e:
 			print e
 			pass
+
 		logging.debug("Entering listen loop")
 		while True:
-			noise = ""
 			try:
 				data = stream.read(buffer)
 				level = float(audioop.max(data,2))
-				if ( level > self.limit ):
-					logging.info("Detected noise, %d" % level)
-
 				barktime=int(strftime('%s',localtime()))+(60*60*3)
-				barktime_readable=strftime('%Y-%m-%d %H:%M:%S',localtime())
-				print '%s %d' % (barktime_readable, level)
-				f = open(NOISE_FILENAME, 'a')
-				f.write("%s %d\n" % (barktime, level))
-				f.close()
+				logging.info('Noise %d' % (level))
+				t = (barktime, level)
+				self.con.execute('INSERT INTO noise VALUES (?,?);',t)
 			except KeyboardInterrupt:
 				print("Interrupted by ctrl-c")
 				break
@@ -64,7 +70,7 @@ class Torstinator:
 
 parser = optparse.OptionParser(version='Torstinator %.2f' % version)
 parser.add_option('-d', '--debug', action='store_true', dest='debug', default=False, help='debug')
-parser.add_option('-l', '--limit', dest='limit', default=1000, type='int', help='limit')
+parser.add_option('-l', '--limit', dest='limit', default=10000, type='int', help='limit')
 (options, args) = parser.parse_args()
 	
 
