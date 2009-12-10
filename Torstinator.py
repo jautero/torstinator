@@ -8,8 +8,7 @@ import logging
 
 import audioop
 import optparse
-from time import localtime, strftime
-
+import time
 import sqlite3
 import os
 
@@ -57,7 +56,7 @@ class Torstinator:
 			try:
 				data = stream.read(buffer)
 				level = float(audioop.max(data,2))
-				barktime=int(strftime('%s',localtime()))+(60*60*3)
+				barktime=int(time.time())
 				logging.info('Noise %d' % (level))
 				t = (barktime, level)
 				self.con.execute('INSERT INTO noise VALUES (?,?);',t)
