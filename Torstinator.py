@@ -118,7 +118,7 @@ class Torstinator:
                 			rate = samples,
                 			input = True,
 					frames_per_buffer = buffer)
-		except e:
+		except Exception, e:
 			print e
 			pass
 
