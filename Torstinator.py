@@ -14,7 +14,7 @@ import os
 import urllib2, cookielib, re
 from time import strftime
 
-version = 0.6
+version = 0.7
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s\t%(levelname)s\t%(message)s')
