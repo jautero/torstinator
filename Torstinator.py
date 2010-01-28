@@ -122,6 +122,9 @@ class Torstinator:
 			print e
 			pass
 
+		if stream == None:
+			logging.debug("Failed to open microphone")
+			return
 		logging.debug("Entering listen loop")
 		while True:
 			try:	
