@@ -11,6 +11,7 @@ from time import strftime
 import sys
 
 
+
 try:
 	import pyaudio 
 except ImportError:
@@ -26,6 +27,11 @@ try:
 	sqlite_enabled = True
 except ImportError:
 	pass
+
+# I have problems with py25 + pyaudio + twitter lib, so this is mainly for my own hacks, sorry
+sys.path.append('/opt/local/lib/python2.5/site-packages/')
+########
+
 
 twitter_enabled = False
 try:
@@ -110,8 +116,6 @@ class Torstinator:
 	sms_from = ""
 	sms_to = ""
 
-	twitapi = None
-
 	def __init__(self):
 		logging.debug("Initializing")
 		database_name = "noise_archive/noise.%s.db" % strftime("%Y-%m-%d")
@@ -143,11 +147,6 @@ class Torstinator:
 		logging.info("sms: %d (limit: %d)" % (self.use_sms, self.sms_limit) )
 		logging.info("Log to screen: %d" % self.use_screenlog)
 
-		if twitter_enabled and self.use_twitter:
-			logging.info("Twitter initialized")
-			self.twitapi = twitter.Api(username=self.twitter_username,password=self.twitter_password)
-
-
 		if sqlite_enabled and self.use_sqlite:
 			logging.debug("Connecting to database")
 			if not os.path.isfile(database_name):
@@ -161,21 +160,27 @@ class Torstinator:
 				logging.debug("Database connected")
 
 	def alert(self, noise):
-		msg = "Noise level exceeded limits, amount %d, limit %d" 
+		msg = 'Noise level exceeded limits, amount %d, limit %d'
 		if self.use_screenlog and noise > self.log_limit:
 			msg = msg % (noise, self.log_limit)
 			logging.info(msg)
 
 		if self.use_twitter and twitter_enabled and noise > self.twitter_limit and self.twitter_username != "" and self.twitter_password != "":
 			msg = msg % (noise, self.twitter_limit)
-			status = self.twitapi.PostUpdate(self.twitter_username, self.twitter_password, msg)
-			logging.info("Alerted via twitter")
+			try:
+				api = twitter.Api(username=self.twitter_username,password=self.twitter_password)
+				status = api.PostUpdate(msg)
+				logging.info("Alerted via twitter")
+			except Exception:
+				pass
 
 		if self.use_sms and noise > self.sms_limit and self.sms_username != "" and self.sms_password != "" and self.sms_to != "" and self.sms_from != "":
 			msg = msg % (noise, self.sms_limit)
-			sendSms(self.sms_username,self.sms_password,self.sms_from,self.sms_to,msg)
-			logging.info("Alerted via SMS")
-
+			try:
+				sendSms(self.sms_username,self.sms_password,self.sms_from,self.sms_to,msg)
+				logging.info("Alerted via SMS")
+			except Exception:
+				pass
 
 	def monitor(self):
 		logging.debug("Monitoring")
@@ -218,9 +223,12 @@ class Torstinator:
 					self.con.execute('INSERT INTO noise VALUES (?,?);',t)
 				
 				self.alert(level)
+			except IOError:
+				logging.warning("PyAudio failed to read device, skipping")
+				pass
 
 			except KeyboardInterrupt:
-				print("Interrupted by ctrl-c")
+				logging.info("Interrupted by ctrl-c")
 				break
 		logging.debug("Closing session")
 		stream.close()
