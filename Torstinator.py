@@ -34,7 +34,7 @@ try:
 except ImportError:
 	pass
 
-version = 0.8
+version = 0.9
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s\t%(levelname)s\t%(message)s')
@@ -116,9 +116,12 @@ class Torstinator:
 		logging.debug("Initializing")
 		database_name = "noise_archive/noise.%s.db" % strftime("%Y-%m-%d")
 		self.day = strftime("%d")
-		self.config = ConfigParser.ConfigParser()
-		self.config.readfp(open('Torstinator.cfg'))
-		
+		try:
+			self.config = ConfigParser.ConfigParser()
+			self.config.readfp(open('Torstinator.cfg'))
+		except IOError:
+			logging.critical("Config file not found, please take copy of Torstinator.cfg.sample and rename it as Torstinator.cfg")
+			sys.exit(2)
 		self.log_limit = self.config.getint('Logging','noise_limit')
 		self.use_sqlite = self.config.getboolean('Logging','use_sqlite')
 		self.use_screenlog = self.config.getboolean('Logging','use_screenlog')
