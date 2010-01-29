@@ -9,7 +9,7 @@ import os
 import urllib2, cookielib, re
 from time import strftime
 import sys
-
+import wave
 
 
 try:
@@ -115,9 +115,13 @@ class Torstinator:
 	sms_password = ""
 	sms_from = ""
 	sms_to = ""
+	use_recording = False
+	recording_limit = None
+	recording_time = None
 
 	def __init__(self):
 		logging.debug("Initializing")
+
 		database_name = "noise_archive/noise.%s.db" % strftime("%Y-%m-%d")
 		self.day = strftime("%d")
 		try:
@@ -129,23 +133,41 @@ class Torstinator:
 		self.log_limit = self.config.getint('Logging','noise_limit')
 		self.use_sqlite = self.config.getboolean('Logging','use_sqlite')
 		self.use_screenlog = self.config.getboolean('Logging','use_screenlog')
+
 		self.use_twitter = self.config.getboolean('Twitter','use_twitter')
 		self.twitter_limit = self.config.getint('Twitter','noise_limit')
 		self.twitter_username = self.config.get('Twitter','username')
 		self.twitter_password = self.config.get('Twitter','password')
-		self.sms_limit = self.config.getint('SMS','noise_limit')
+
+		self.use_recording = self.config.getboolean('Record','use_recording')
+		self.recording_limit = self.config.getint('Record','noise_limit')
+		self.recording_time = self.config.getint('Record','record_time')
+
 		self.use_sms = self.config.getboolean('SMS','use_sms')
+		self.sms_limit = self.config.getint('SMS','noise_limit')
 		self.sms_username = self.config.get('SMS','username')
 		self.sms_password = self.config.get('SMS','password')
 		self.sms_from = self.config.get('SMS','from')
 		self.sms_to = self.config.get('SMS','to')
 
 		logging.info("Torstinator %.2f" % version)
-		logging.info("Limit: %d" % self.log_limit)
-		logging.info("Twitter: %d (limit: %d)" % (self.use_twitter, self.twitter_limit))
 		logging.info("sqlite: %d" % (self.use_sqlite))
+		logging.info("Log to screen: %d (limit: %d)" % (self.use_screenlog, self.log_limit))
+		logging.info("Twitter: %d (limit: %d)" % (self.use_twitter, self.twitter_limit))
 		logging.info("sms: %d (limit: %d)" % (self.use_sms, self.sms_limit) )
-		logging.info("Log to screen: %d" % self.use_screenlog)
+		logging.info("record: %d (limit: %d, length: %d seconds)" % (self.use_recording, self.recording_limit, self.recording_time) )
+
+		if os.path.isdir("noise_archive"):
+			logging.debug("noise_archive folder found")
+		else:
+			os.mkdir("noise_archive")
+			logging.info("created archive folder for sqlite files")
+
+		if os.path.isdir("record_archive"):
+			logging.debug("record_archive folder found")
+		else:
+			os.mkdir("record_archive")
+			logging.info("created archive folder for wave record files")
 
 		if sqlite_enabled and self.use_sqlite:
 			logging.debug("Connecting to database")
@@ -215,6 +237,23 @@ class Torstinator:
 				data = stream.read(buffer)
 				level = int(audioop.max(data,2))
 				barktime=int(time.time())
+
+				if self.use_recording and level > self.recording_limit:
+					logging.info("Recording some noise")
+					all = []
+					for i in range(0, samples / buffer * self.recording_time):
+						d = stream.read(buffer)
+						all.append(d)
+					d = ''.join(all)
+					filename = 'record_archive/%s.wav' % strftime("%Y-%m-%d_%H%M%S")
+					wf = wave.open(filename, 'wb')
+					wf.setnchannels(1)
+					wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+					wf.setframerate(samples)
+					wf.writeframes(d)
+					wf.close()
+	
+				
 				t = (barktime, level)
 				if self.use_screenlog:
 					logging.info('Noise %d' % (level))

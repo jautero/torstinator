@@ -16,3 +16,10 @@ username=
 password=
 to=
 from=
+
+
+[Record]
+use_recording=True
+noise_limit=5000
+record_time=5
+
