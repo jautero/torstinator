@@ -22,7 +22,7 @@ except ImportError:
     sys.exit(1)
 # http://docs.python.org/library/logging.html
 import logging
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s\t%(levelname)s\t%(message)s')
 
 __sqliteenabled__ = False
@@ -219,15 +219,12 @@ class Torstinator:
             logging.debug("Connecting to database")
             if not os.path.isfile(database_name):
                 logging.warning("Database file not found")
-                self.con = sqlite3.connect(database_name, \
-                                           isolation_level = None)
+                self.con = sqlite3.connect(database_name, isolation_level = None)
                 cursor = self.con.cursor()
-                cursor.execute('create table noise (datetime ', \
-                               'text, noise real);')
+                cursor.execute('create table noise (datetime text, noise real);')
             else:
                 logging.debug("Database file found")
-                self.con = sqlite3.connect(database_name, \
-                                           isolation_level = None)
+                self.con = sqlite3.connect(database_name, isolation_level = None)
                 logging.debug("Database connected")
 
     def alert(self, noise):
