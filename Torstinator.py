@@ -220,15 +220,16 @@ class Torstinator:
     def alert(self, noise):
         """ process alerts """
         msg = 'Noise level exceeded limits, amount %d, limit %d'
-        if self.use_screenlog and noise > self.log_limit:
-            msg = msg % (noise, self.log_limit)
-            logging.info(msg)
+
+        # if self.use_screenlog and noise > self.log_limit:
+        #     msg = msg % (noise, self.log_limit)
+        #     logging.info(msg)
 
         if self.use_twitter and \
-               __twitterenabled__ and \
-               noise > self.twitter_limit and \
-               self.twitter_username != "" and \
-               self.twitter_password != "":
+                __twitterenabled__ and \
+                noise > self.twitter_limit and \
+                self.twitter_username != "" and \
+                self.twitter_password != "":
             msg = msg % (noise, self.twitter_limit)
             try:
                 api = twitter.Api(username=self.twitter_username, \
@@ -236,7 +237,7 @@ class Torstinator:
                 status = api.PostUpdate(msg)
                 logging.info("Alerted via twitter (%s)", status)
             except:
-                print "Unexpected error:", sys.exc_info()[0]
+                print "Unexpected error while twittering:", sys.exc_info()[0]
                 pass
 
         if self.use_sms and \
@@ -248,10 +249,10 @@ class Torstinator:
             msg = msg % (noise, self.sms_limit)
             try:
                 send_sms(self.sms_username, self.sms_password, \
-                        self.sms_from, self.sms_to,msg)
+                        self.sms_from, self.sms_to, msg)
                 logging.info("Alerted via SMS")
             except:
-                print "Unexpected error:", sys.exc_info()[0]
+                print "Unexpected error while sending sms:", sys.exc_info()[0]
                 pass
 
     def monitor(self):
@@ -289,13 +290,16 @@ class Torstinator:
                 level = int(audioop.max(data, 2))
                 barktime = int(time.time())
 
+                self.alert(level)
+
                 if self.use_recording and level > self.recording_limit:
                     logging.info("Recording some noise")
                     all = []
+                    all.append(data)
                     for i in range(0, samples / samples * self.recording_time):
                         streamdata = stream.read(samples)
                         all.append(streamdata)
-                        print i
+                        logging.info("Recording.. %d" % (i+1))
                     streamdata = ''.join(all)
                     filename = 'record_archive/%s.wav' % \
                                strftime("%Y-%m-%d_%H%M%S")
@@ -315,7 +319,6 @@ class Torstinator:
                     self.con.execute('INSERT INTO noise VALUES (?,?);', \
                                      (barktime, level))
                 
-                self.alert(level)
             except IOError:
                 logging.warning("PyAudio failed to read device, skipping")
                 pass
