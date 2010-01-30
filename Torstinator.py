@@ -84,40 +84,53 @@ def send_sms(username, password, sender, recipients, sms):
     """
     multiple = 0
     msgs = []
-    if len(sms)>160:
-        multiple = len(sms)/160 + 1
-        last = 0
-        for i in range(0, multiple):
-            msgs.append(sms[i*160:i*160+160])
-            last = i
-    else:
-        msgs.append(sms)
+    try:
+        if len(sms)>160:
+            multiple = len(sms)/160 + 1
+            last = 0
+            for i in range(0, multiple):
+                msgs.append(sms[i*160:i*160+160])
+                last = i
+        else:
+            msgs.append(sms)
+    except:
+        print "Unexpected error while splitting sms message:", sys.exc_info()[0]
 
-    for i in msgs:
-        sms = i
-        url = 'https://oma.saunalahti.fi/settings/smsSend'
-        details = r"username="+username+\
-                  r"&login=SisÃ¤Ã¤n&password="+password
-        cookie = cookielib.CookieJar()
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(c))
-        opener.addheaders = [('Referer', \
-                    'https://oma.saunalahti.fi/settings/'),
-                   ('Content-Type', \
-                    'application/x-www-form-urlencoded'),
-                   ('User-Agent', \
-                    'Mozilla/5.0 (Windows; U; Windows NT 5.1; ', \
-                    'en-US; rv:1.8.1.14) Gecko/20080404 Firefox/2.0.0.14')]
-        site = opener.open(url, details)
-        tmp = site.read()
-        site.close()
-        details = "sender=" + sender + \
-                "&recipients=" + recipients + \
-                "&text=" + sms + \
-                "&size=" + str(len(sms)) + \
-                "&send=LÃ¤hetÃ¤"
-        site = opener.open(url, details)
-        tmp = site.read()
-        site.close()
+    for sms in msgs:
+        url = None
+        details = None
+        cookie = None
+        opener = None
+        site = None
+        tmp = None
+        try:
+            url = 'https://oma.saunalahti.fi/settings/smsSend'
+            details = r"username="+username+\
+                      r"&login=SisÃ¤Ã¤n&password="+password
+            cookie = cookielib.CookieJar()
+            opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
+            opener.addheaders = [('Referer', \
+                        'https://oma.saunalahti.fi/settings/'),
+                       ('Content-Type', \
+                        'application/x-www-form-urlencoded'),
+                       ('User-Agent', \
+                        'Mozilla/5.0 (Windows; U; Windows NT 5.1; '+ \
+                        'en-US; rv:1.8.1.14) Gecko/20080404 Firefox/2.0.0.14')]
+            site = opener.open(url, details)
+            tmp = site.read()
+            site.close()
+            details = "sender=" + sender + \
+                    "&recipients=" + recipients + \
+                    "&text=" + sms + \
+                    "&size=" + str(len(sms)) + \
+                    "&send=LÃ¤hetÃ¤"
+            site = opener.open(url, details)
+            tmp = site.read()
+            site.close()
+        except:
+            print "Unexpected error while sending sms from send_sms function:",\
+                   sys.exc_info()[0]
+
 
 class Torstinator:
     """ Class for doing all the work of Torstinator - The bark detector"""
